@@ -15,7 +15,6 @@ import com.reactive.example.dto.BeerPagedList;
 import lombok.RequiredArgsConstructor;
 import reactor.core.publisher.Mono;
 
-@SuppressWarnings("rawtypes")
 @Service
 @RequiredArgsConstructor
 public class BeerClientImpl implements BeerClient {
