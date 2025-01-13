@@ -72,16 +72,17 @@ public class WebClientIT {
                 .price(new BigDecimal("9.99"))
                 .build();
 
-        webClient.put().uri("/api/v1/beer/" + 200 )
+        webClient.put().uri("/api/v1/beer/" + 200)
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromValue(updatePayload))
                 .retrieve().toBodilessEntity()
                 .subscribe(responseEntity -> {
                 }, throwable -> {
-                    if (throwable.getClass().getName().equals("org.springframework.web.reactive.function.client.WebClientResponseException$NotFound")){
+                    if (throwable.getClass().getName().equals(
+                            "org.springframework.web.reactive.function.client.WebClientResponseException$NotFound")) {
                         WebClientResponseException ex = (WebClientResponseException) throwable;
 
-                        if (ex.getStatusCode().equals(HttpStatus.NOT_FOUND)){
+                        if (ex.getStatusCode().equals(HttpStatus.NOT_FOUND)) {
                             countDownLatch.countDown();
                         }
                     }
@@ -154,7 +155,7 @@ public class WebClientIT {
                 .subscribe(pagedList -> {
                     countDownLatch.countDown();
 
-                    //get existing beer
+                    // get existing beer
                     BeerDto beerDto = pagedList.getContent().get(0);
 
                     BeerDto updatePayload = BeerDto.builder().beerName("JTsUpdate")
@@ -163,24 +164,60 @@ public class WebClientIT {
                             .price(beerDto.getPrice())
                             .build();
 
-                    //update existing beer
-                    webClient.put().uri("/api/v1/beer/" + beerDto.getId() )
+                    // update existing beer
+                    webClient.put().uri("/api/v1/beer/" + beerDto.getId())
                             .contentType(MediaType.APPLICATION_JSON)
                             .body(BodyInserters.fromValue(updatePayload))
                             .retrieve().toBodilessEntity()
                             .flatMap(responseEntity -> {
-                                //get and verify update
+                                // get and verify update
                                 countDownLatch.countDown();
                                 return webClient.get().uri("/api/v1/beer/" + beerDto.getId())
                                         .accept(MediaType.APPLICATION_JSON)
                                         .retrieve().bodyToMono(BeerDto.class);
-                            }) .subscribe(savedDto -> {
-                                    assertEquals("JTsUpdate",savedDto.getBeerName());
-                                    countDownLatch.countDown();
-                    });
+                            }).subscribe(savedDto -> {
+                                assertEquals("JTsUpdate", savedDto.getBeerName());
+                                countDownLatch.countDown();
+                            });
                 });
 
         countDownLatch.await(10000, TimeUnit.MILLISECONDS);
+        assertEquals(0, countDownLatch.getCount());
+    }
+
+    @Test
+    void testDeleteBeer() throws InterruptedException {
+
+        CountDownLatch countDownLatch = new CountDownLatch(3);
+
+        webClient.get().uri("/api/v1/beer")
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .bodyToMono(BeerPagedList.class)
+                .publishOn(Schedulers.single())
+                .subscribe(pagedList -> {
+                    countDownLatch.countDown();
+
+                    BeerDto beerDto = pagedList.getContent().get(0);
+
+                    webClient.delete().uri("/api/v1/beer/" + beerDto.getId())
+                            .retrieve()
+                            .toBodilessEntity()
+                            .flatMap(responseEntity -> {
+                                countDownLatch.countDown();
+
+                                return webClient.get().uri("/api/v1/beer/" + beerDto.getId())
+                                        .accept(MediaType.APPLICATION_JSON)
+                                        .retrieve()
+                                        .bodyToMono(BeerDto.class);
+                            }).subscribe(savedDto -> {
+
+                            }, throwable -> {
+                                countDownLatch.countDown();
+                            });
+                });
+
+        countDownLatch.await(1000, TimeUnit.MILLISECONDS);
         assertEquals(0, countDownLatch.getCount());
     }
 }
