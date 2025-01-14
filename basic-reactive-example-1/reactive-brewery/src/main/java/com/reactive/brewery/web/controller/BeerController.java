@@ -66,11 +66,12 @@ public class BeerController {
             showInventoryOnHand = false;
         }
 
-        return ResponseEntity.ok(beerService.getById(beerId, showInventoryOnHand).defaultIfEmpty(BeerDto.builder().build()).doOnNext(beerDto -> {
-            if(beerDto.getId() == null){
-                throw new NotFoundException();
-            }
-        }));
+        return ResponseEntity.ok(beerService.getById(beerId, showInventoryOnHand)
+                .defaultIfEmpty(BeerDto.builder().build()).doOnNext(beerDto -> {
+                    if (beerDto.getId() == null) {
+                        throw new NotFoundException();
+                    }
+                }));
     }
 
     @GetMapping("beerUpc/{upc}")

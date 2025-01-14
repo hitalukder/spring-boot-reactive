@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import com.reactive.brewery.domain.Beer;
 import com.reactive.brewery.repositories.BeerRepository;
+import com.reactive.brewery.web.controller.NotFoundException;
 import com.reactive.brewery.web.mappers.BeerMapper;
 import com.reactive.brewery.web.model.BeerDto;
 import com.reactive.brewery.web.model.BeerPagedList;
@@ -108,5 +109,26 @@ public class BeerServiceImpl implements BeerService {
     @Override
     public void deleteBeerById(Integer beerId) {
         beerRepository.deleteById(beerId).subscribe();
+    }
+
+    @Override
+    public Mono<BeerDto> saveNewBeerMono(Mono<BeerDto> beerDto) {
+        return beerDto.map(beerMapper::beerDtoToBeer)
+                .flatMap(beerRepository::save)
+                .map(beerMapper::beerToBeerDto);
+    }
+
+    @Override
+    public Mono<BeerDto> updateBeerMono(Integer beerId, Mono<BeerDto> beerDto) {
+        return null;
+    }
+
+    @Override
+    public Mono<Void> reactiveDeleteById(Integer beerId) {
+        return beerRepository
+                .findById(beerId)
+                .switchIfEmpty(Mono.error(new NotFoundException()))
+                .map(beer -> beer.getId())
+                .flatMap(foundId -> beerRepository.deleteById(beerId));
     }
 }
